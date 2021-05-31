@@ -13,7 +13,7 @@ class TrafficGenerator:
         np.random.seed(seed)  # make tests reproducible
 
         # the generation of cars is distributed according to a weibull distribution
-        timings = np.random.weibull(2, self._n_cars_generated)
+        timings = np.random.weibull(3, self._n_cars_generated)
         timings = np.sort(timings)
 
         # reshape the distribution to fit the interval 0:max_steps
@@ -33,17 +33,32 @@ class TrafficGenerator:
             <vType accel="1.0" decel="4.5" id="standard_car" length="5.0" minGap="2.5" maxSpeed="25" sigma="0.5" />
 
             <route id="W_N" edges="W2TL TL2N"/>
-            <route id="W_E" edges="W2TL TL2E"/>
+            <route id="W_E" edges="W2TL TL2E TL12E"/>
             <route id="W_S" edges="W2TL TL2S"/>
             <route id="N_W" edges="N2TL TL2W"/>
-            <route id="N_E" edges="N2TL TL2E"/>
+            <route id="N_E" edges="N2TL TL2E TL12E"/>
             <route id="N_S" edges="N2TL TL2S"/>
             <route id="E_W" edges="E2TL TL2W"/>
             <route id="E_N" edges="E2TL TL2N"/>
             <route id="E_S" edges="E2TL TL2S"/>
             <route id="S_W" edges="S2TL TL2W"/>
             <route id="S_N" edges="S2TL TL2N"/>
-            <route id="S_E" edges="S2TL TL2E"/>""", file=routes)
+            <route id="S_E" edges="S2TL TL2E TL12S"/>
+            
+            
+            <route id="W_N1" edges="TL2E TL12N"/>
+            <route id="W_E1" edges="TL2E TL12E"/>
+            <route id="W_S1" edges="TL2E TL12S"/>
+            <route id="N_W1" edges="N2TL1 E2TL TL2N"/>
+            <route id="N_E1" edges="N2TL1 TL12E"/>
+            <route id="N_S1" edges="N2TL1 TL12S"/>
+            <route id="E_W1" edges="E2TL1 E2TL TL2W"/>
+            <route id="E_N1" edges="E2TL1 TL12N"/>
+            <route id="E_S1" edges="E2TL1 TL12S"/>
+            <route id="S_W1" edges="S2TL1 E2TL TL2S"/>
+            <route id="S_N1" edges="S2TL1 TL12N"/>
+            <route id="S_E1" edges="S2TL1 TL12E"/>
+            """, file=routes)
 
             for car_counter, step in enumerate(car_gen_steps):
                 straight_or_turn = np.random.uniform()
@@ -52,7 +67,7 @@ class TrafficGenerator:
                     if route_straight == 1:
                         print('    <vehicle id="W_E_%i" type="standard_car" route="W_E" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
                     elif route_straight == 2:
-                        print('    <vehicle id="E_W_%i" type="standard_car" route="E_W" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
+                        print('    <vehicle id="E_W_%i" type="standard_car" route="E_W1" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
                     elif route_straight == 3:
                         print('    <vehicle id="N_S_%i" type="standard_car" route="N_S" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
                     else:
@@ -68,12 +83,13 @@ class TrafficGenerator:
                     elif route_turn == 4:
                         print('    <vehicle id="N_E_%i" type="standard_car" route="N_E" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
                     elif route_turn == 5:
-                        print('    <vehicle id="E_N_%i" type="standard_car" route="E_N" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
+                        print('    <vehicle id="E_N_%i" type="standard_car" route="E_N1" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
                     elif route_turn == 6:
-                        print('    <vehicle id="E_S_%i" type="standard_car" route="E_S" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
+                        print('    <vehicle id="E_S_%i" type="standard_car" route="E_S1" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
                     elif route_turn == 7:
                         print('    <vehicle id="S_W_%i" type="standard_car" route="S_W" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
                     elif route_turn == 8:
                         print('    <vehicle id="S_E_%i" type="standard_car" route="S_E" depart="%s" departLane="random" departSpeed="10" />' % (car_counter, step), file=routes)
+
 
             print("</routes>", file=routes)
