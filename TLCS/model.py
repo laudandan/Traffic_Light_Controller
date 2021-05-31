@@ -1,5 +1,5 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL']='2'  # kill warning about tensorflow
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # kill warning about tensorflow
 import tensorflow as tf
 import numpy as np
 import sys
@@ -20,12 +20,12 @@ class TrainModel:
         self._learning_rate = learning_rate
         self._model = self._build_model(num_layers, width)
 
-
     def _build_model(self, num_layers, width):
         """
         Build and compile a fully connected deep neural network
         """
         inputs = keras.Input(shape=(self._input_dim,))
+
         x = layers.Dense(width, activation='relu')(inputs)
         for _ in range(num_layers):
             x = layers.Dense(width, activation='relu')(x)
@@ -34,7 +34,6 @@ class TrainModel:
         model = keras.Model(inputs=inputs, outputs=outputs, name='my_model')
         model.compile(loss=losses.mean_squared_error, optimizer=Adam(lr=self._learning_rate))
         return model
-    
 
     def predict_one(self, state):
         """
@@ -43,13 +42,11 @@ class TrainModel:
         state = np.reshape(state, [1, self._input_dim])
         return self._model.predict(state)
 
-
     def predict_batch(self, states):
         """
         Predict the action values from a batch of states
         """
         return self._model.predict(states)
-
 
     def train_batch(self, states, q_sa):
         """
@@ -57,24 +54,20 @@ class TrainModel:
         """
         self._model.fit(states, q_sa, epochs=1, verbose=0)
 
-
-    def save_model(self, path):
+    def save_model(self, path, grade):
         """
         Save the current model in the folder as h5 file and a model architecture summary as png
         """
-        self._model.save(os.path.join(path, 'trained_model.h5'))
-        plot_model(self._model, to_file=os.path.join(path, 'model_structure.png'), show_shapes=True, show_layer_names=True)
-
+        self._model.save(os.path.join(path, 'trained_model' + str(grade) + '.h5'))
+        # plot_model(self._model, to_file=os.path.join(path, 'model_structure.png'), show_shapes=True, show_layer_names=True)
 
     @property
     def input_dim(self):
         return self._input_dim
 
-
     @property
     def output_dim(self):
         return self._output_dim
-
 
     @property
     def batch_size(self):
@@ -82,23 +75,21 @@ class TrainModel:
 
 
 class TestModel:
-    def __init__(self, input_dim, model_path):
+    def __init__(self, input_dim, model_path, type):
         self._input_dim = input_dim
-        self._model = self._load_my_model(model_path)
+        self._model = self._load_my_model(model_path, type)
 
-
-    def _load_my_model(self, model_folder_path):
+    def _load_my_model(self, model_folder_path, type):
         """
         Load the model stored in the folder specified by the model number, if it exists
         """
-        model_file_path = os.path.join(model_folder_path, 'trained_model.h5')
+        model_file_path = os.path.join(model_folder_path, 'trained_model'+str(type)+'.h5')
         
         if os.path.isfile(model_file_path):
             loaded_model = load_model(model_file_path)
             return loaded_model
         else:
             sys.exit("Model number not found")
-
 
     def predict_one(self, state):
         """
