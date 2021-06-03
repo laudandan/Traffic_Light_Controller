@@ -50,6 +50,9 @@ class Simulation:
         self.old_total_wait = 0
         self.old_action = -1  # dummy init
 
+        self.rewards = 0
+        self.score_epoch = []
+
         self.index = 0
         self.flag_observations = True
         self.flag_yellow = True
@@ -144,9 +147,13 @@ class Simulation:
         start_time = timeit.default_timer()
         for _ in range(self._training_epochs):
             self._replay()
+            self.score_epoch.append(self.rewards)
         training_time = round(timeit.default_timer() - start_time, 1)
 
         return simulation_time, training_time
+
+    def get_score_epoch(self):
+        return self.score_epoch
 
     def _waiting_queue(self, incoming_roads):
         queue_length = self._get_queue_length(incoming_roads=incoming_roads)
@@ -307,7 +314,6 @@ class Simulation:
         Retrieve a group of samples from the memory and for each of them update the learning equation, then train
         """
         batch = self._Memory.get_samples(self._Model.batch_size)
-
         if len(batch) > 0:  # if the memory is full enough
             states = np.array([val[0] for val in batch])  # extract states from the batch
             next_states = np.array([val[3] for val in batch])  # extract next states from the batch
@@ -322,11 +328,13 @@ class Simulation:
 
             for i, b in enumerate(batch):
                 state, action, reward, _ = b[0], b[1], b[2], b[3]  # extract data from one sample
+                self.rewards += reward
                 current_q = q_s_a[i]  # get the Q(state) predicted before
                 current_q[action] = reward + self._gamma * np.amax(q_s_a_d[i])  # update Q(state, action)
                 x[i] = state
                 y[i] = current_q  # Q(state) that includes the updated action value
 
+            self.rewards /= len(batch)
             self._Model.train_batch(x, y)  # train the NN
 
     def _save_episode_stats(self):

@@ -21,6 +21,8 @@ class Visualization:
         plt.xlabel(xlabel)
         plt.margins(0)
         plt.ylim(min_val - 0.05 * abs(min_val), max_val + 0.05 * abs(max_val))
+        # plt.ylim(min_val)
+
         fig = plt.gcf()
         fig.set_size_inches(20, 11.25)
         fig.savefig(os.path.join(self._path, 'plot_'+filename+'.png'), dpi=self._dpi)
@@ -28,5 +30,4 @@ class Visualization:
 
         with open(os.path.join(self._path, 'plot_'+filename + '_data.txt'), "w") as file:
             for value in data:
-                    file.write("%s\n" % value)
-    
+                file.write("%s\n" % value)

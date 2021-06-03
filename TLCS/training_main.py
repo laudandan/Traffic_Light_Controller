@@ -99,10 +99,10 @@ if __name__ == "__main__":
     episode = 0
     epsilon = 0
 
-    list_reward = []
+    list_reward_neg = []
+    result_score_epoch = []
     # Iterate episodes of simulation
-    sum_neg_reward1 = 0
-    sum_neg_reward2 = 0
+
     while episode < config['total_episodes']:
         simulation.before_running(episode)
         simulation1.before_running(episode)
@@ -116,19 +116,18 @@ if __name__ == "__main__":
         while steps < config['max_steps']:
             simulation.running(epsilon)
             simulation1.running(epsilon)
-            list_reward.append(simulation.get_reward()+simulation1.get_reward())  # +simulation1.get_reward())
+            # list_reward.append(simulation.get_reward()+simulation1.get_reward())  # +simulation1.get_reward())
             simulation_step()
             steps += 1
         steps = 0
         episode += 1
-        sum_neg_reward1 += simulation.get_reward_neg()
-        sum_neg_reward2 += simulation1.get_reward_neg()
         simulation_time, training_time = simulation.after_running(epsilon)
         _, _ = simulation1.after_running(epsilon)
-        print("Total reward agent1:", sum_neg_reward1, "- Epsilon:", round(epsilon, 2))
+        print("Total reward agent1:", simulation.get_reward_neg(), "- Epsilon:", round(epsilon, 2))
         print("Total reward agent2:", simulation1.get_reward_neg(), "- Epsilon:", round(epsilon, 2))
-        sum_neg_reward1 = 0
-        sum_neg_reward2 = 0
+        result_score_epoch = [simulation.get_score_epoch()[x] + simulation1.get_score_epoch()[x]
+                              for x in range(len(simulation.get_score_epoch()))]
+        list_reward_neg.append(simulation.get_reward_neg()+simulation1.get_reward_neg())
         print('Simulation time:', simulation_time, 's - Training time:', training_time, 's - Total:',
               round(simulation_time + training_time, 1), 's')
         simulation.close_sumo()
@@ -141,12 +140,13 @@ if __name__ == "__main__":
     model2.save_model(path, 1)
 
     copyfile(src='training_settings.ini', dst=os.path.join(path, 'training_settings.ini'))
-
-    Visualization.save_data_and_plot(data=list_reward, filename="reward_agents",
-                                     xlabel='Episode', ylabel='Cumulative reward')
-    Visualization.save_data_and_plot(data=simulation.reward_store, filename='reward',
-                                     xlabel='Episode', ylabel='Cumulative negative reward')
-    Visualization.save_data_and_plot(data=simulation.cumulative_wait_store, filename='delay',
-                                     xlabel='Episode', ylabel='Cumulative delay (s)')
-    Visualization.save_data_and_plot(data=simulation.avg_queue_length_store, filename='queue',
-                                     xlabel='Episode', ylabel='Average queue length (vehicles)')
+    Visualization.save_data_and_plot(data=list_reward_neg, filename="reward_neg",
+                                     xlabel='Episode', ylabel='Negative Reward')
+    Visualization.save_data_and_plot(data=result_score_epoch, filename="score_epochs_avg_reward",
+                                    xlabel='Training Epochs', ylabel='Average score')
+    # Visualization.save_data_and_plot(data=simulation.reward_store, filename='reward',
+    #                                 xlabel='Episode', ylabel='Cumulative negative reward')
+    # Visualization.save_data_and_plot(data=simulation.cumulative_wait_store, filename='delay',
+    #                                 xlabel='Episode', ylabel='Cumulative delay (s)')
+    # Visualization.save_data_and_plot(data=simulation.avg_queue_length_store, filename='queue',
+    #                                 xlabel='Episode', ylabel='Average queue length (vehicles)')
