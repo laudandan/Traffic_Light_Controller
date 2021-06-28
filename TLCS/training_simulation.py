@@ -2,7 +2,7 @@ import traci
 import numpy as np
 import random
 import timeit
-import os
+import itertools
 
 # phase codes based on environment.net.xml
 PHASE_NS_GREEN = 0  # action 0 code 00
@@ -21,7 +21,7 @@ def simulation_step():
 
 class Simulation:
     def __init__(self, Model, Memory, TrafficGen, sumo_cmd, gamma, max_steps, green_duration, yellow_duration,
-                 num_states, num_actions, training_epochs, incoming_roads, state_nr, neighbor_nr, ts):
+                 num_states, num_actions, training_epochs, incoming_roads, ts, dumb = False):
         self._Model = Model
         self._Memory = Memory
         self._TrafficGen = TrafficGen
@@ -39,16 +39,15 @@ class Simulation:
         self._training_epochs = training_epochs
 
         self.incoming_roads = incoming_roads
-        self.state_nr = state_nr
-        self.neighbor_nr = neighbor_nr
         self.ts = ts
+        self.neighbor = []
         self._waiting_times = {}
         self._sum_neg_reward = 0
         self._sum_queue_length = 0
         self._sum_waiting_time = 0
         self.old_state = -1
         self.old_total_wait = 0
-        self.old_action = -1  # dummy init
+        self.old_action = -1
 
         self.rewards = 0
         self.score_epoch = []
@@ -58,30 +57,41 @@ class Simulation:
         self.flag_yellow = True
         self.flag_green = True
         self.flag_reward = True
+        self.dumb = dumb
+        self.action = 0
+        self.nr_stops = 0
 
-    def running(self, epsilon):
+    def train(self, epsilon):
         if self.index == 0 and self.flag_observations:
-            current_state_agent1 = self._get_state(self.state_nr)
-            current_state_agent2 = self._get_state(self.neighbor_nr)
-            self.current_state = np.concatenate((current_state_agent1[:len(current_state_agent1)//2],
-                                                 current_state_agent2[:len(current_state_agent2)//2]), axis=None)
+            current_state_agent1 = self._get_state(self.ts)
+            current_state_agent2 = []
+            for i in self.neighbor:
+                current_state_agent2.append(self._get_state(i))
+
+            current_state_agent1 = current_state_agent1[:len(current_state_agent1)//(len(self.neighbor)+1)]
+            listat = []
+            for state in current_state_agent2:
+                listat.append(state[:(len(state)//(len(self.neighbor)+1))])
+            self.current_state = np.append(current_state_agent1, listat)
+
             self.current_total_wait = self._collect_waiting_times(incoming_roads=self.incoming_roads)
             self.reward = self.old_total_wait - self.current_total_wait
-            self.action = self._choose_action(self.current_state, epsilon)
+            if not self.dumb:
+                self.action = self._choose_action(self.current_state, epsilon)
             if self._step != 0:
                 self._Memory.add_sample((self.old_state, self.old_action, self.reward, self.current_state))
 
             self.set_flags(False, True, True, False)
 
         if self._step != 0 and self.old_action != self.action and self.index == 0 and self.flag_yellow:
-            self._set_yellow_phase(self.old_action, self.ts)
-            # self._simulate(incoming_roads=self.incoming_roads)
+            if not self.dumb:
+                self._set_yellow_phase(self.old_action, self.ts)
             self.index = self._yellow_duration
             self.set_flags(False, False, True, False)
 
         if self.index == 0 and self.flag_green:
-            self._set_green_phase(self.action, self.ts)
-            # self._simulate(incoming_roads=self.incoming_roads)
+            if not self.dumb:
+                self._set_green_phase(self.action, self.ts)
             self.index = self._green_duration
             self.set_flags(False, False, False, True)
 
@@ -101,6 +111,33 @@ class Simulation:
             self.index -= 1
         self._step += 1
 
+    def setNeighborTs(self):
+        list = self.getNeighborTs()
+        for i in list:
+            self.neighbor.append(i)
+
+    def getNeighborTs(self):
+        listIDw = list(dict.fromkeys(traci.trafficlight.getControlledLanes(self.ts)))
+        listID = []
+        for i in listIDw:
+            data = i.split("_")
+            listID.append(data[0])
+        listIDs = list(traci.trafficlight.getIDList())
+        listIDs.remove(self.ts)
+        listTS = []
+        for id_ts in listIDs:
+            for link in traci.trafficlight.getControlledLanes(id_ts):
+                data = link.split("_")
+                tss = data[0].split("2", maxsplit=1)
+                if tss[1] == "2E":
+                    tss[1] = "E"
+                    tss[0] = "TL2"
+                result = tss[1] + "2" + tss[0]
+                for lane in listID:
+                    if lane == result:
+                        listTS.append(id_ts)
+        return list(dict.fromkeys(listTS))
+
     def get_reward(self):
         return self.reward
 
@@ -116,8 +153,11 @@ class Simulation:
     def close_sumo(self):
         traci.close()
 
-    def generate_route(self, episode):
-        self._TrafficGen.generate_routefile(seed=episode)
+    def generate_route(self, episode, model):
+        if model == '2x2':
+            self._TrafficGen.generate_routefile2x2(seed=episode)
+        else:
+            self._TrafficGen.generate_routefile(seed=episode)
 
     def before_running(self, episode):
         self._step = 0
@@ -128,7 +168,7 @@ class Simulation:
         self._waiting_times = {}
         self.old_total_wait = 0
         self.old_action = -1
-
+        self.nr_stops = 0
         self.start_time = timeit.default_timer()
         print("Simulating...")
 
@@ -145,9 +185,10 @@ class Simulation:
 
         print("Training...")
         start_time = timeit.default_timer()
-        for _ in range(self._training_epochs):
-            self._replay()
-            self.score_epoch.append(self.rewards)
+        if not self.dumb:
+            for _ in range(self._training_epochs):
+                self._replay()
+                self.score_epoch.append(self.rewards)
         training_time = round(timeit.default_timer() - start_time, 1)
 
         return simulation_time, training_time
@@ -218,13 +259,13 @@ class Simulation:
             queue_length += halt
         return queue_length
 
-    def _get_state(self, number_traffic=0):
+    def _get_state(self, ts):
         """
         Retrieve the state of the intersection from sumo, in the form of cell occupancy
         """
         state = np.zeros(self._num_states)
         car_list = traci.vehicle.getIDList()
-
+        nr_stops = 0
         for car_id in car_list:
             lane_pos = traci.vehicle.getLanePosition(car_id)
             lane_id = traci.vehicle.getLaneID(car_id)
@@ -252,46 +293,25 @@ class Simulation:
             elif lane_pos <= 750:
                 lane_cell = 9
 
-            # finding the lane where the car is located
-            # x2TL_3 are the "turn left only" lanes
-            if number_traffic == 0:
-                if lane_id == "W2TL_0" or lane_id == "W2TL_1" or lane_id == "W2TL_2":
-                    lane_group = 0
-                elif lane_id == "W2TL_3":
-                    lane_group = 1
-                elif lane_id == "N2TL_0" or lane_id == "N2TL_1" or lane_id == "N2TL_2":
-                    lane_group = 2
-                elif lane_id == "N2TL_3":
-                    lane_group = 3
-                elif lane_id == "E2TL_0" or lane_id == "E2TL_1" or lane_id == "E2TL_2":
-                    lane_group = 4
-                elif lane_id == "E2TL_3":
-                    lane_group = 5
-                elif lane_id == "S2TL_0" or lane_id == "S2TL_1" or lane_id == "S2TL_2":
-                    lane_group = 6
-                elif lane_id == "S2TL_3":
-                    lane_group = 7
-                else:
-                    lane_group = -1
+            lane = list(dict.fromkeys(traci.trafficlight.getControlledLanes(ts)))
+            if lane_id == lane[12] or lane_id == lane[13] or lane_id == lane[14]:
+                lane_group = 0
+            elif lane_id == lane[15]:
+                lane_group = 1
+            elif lane_id == lane[0] or lane_id == lane[1] or lane_id == lane[2]:
+                lane_group = 2
+            elif lane_id == lane[3]:
+                lane_group = 3
+            elif lane_id == lane[4] or lane_id == lane[5] or lane_id == lane[6]:
+                lane_group = 4
+            elif lane_id == lane[7]:
+                lane_group = 5
+            elif lane_id == lane[8] or lane_id == lane[9] or lane_id == lane[10]:
+                lane_group = 6
+            elif lane_id == lane[11]:
+                lane_group = 7
             else:
-                if lane_id == "W2TL1_0" or lane_id == "W2TL1_1" or lane_id == "W2TL1_2":
-                    lane_group = 0
-                elif lane_id == "W2TL1_3":
-                    lane_group = 1
-                elif lane_id == "N2TL1_0" or lane_id == "N2TL1_1" or lane_id == "N2TL1_2":
-                    lane_group = 2
-                elif lane_id == "N2TL1_3":
-                    lane_group = 3
-                elif lane_id == "E2TL1_0" or lane_id == "E2TL1_1" or lane_id == "E2TL1_2":
-                    lane_group = 4
-                elif lane_id == "E2TL1_3":
-                    lane_group = 5
-                elif lane_id == "S2TL1_0" or lane_id == "S2TL1_1" or lane_id == "S2TL1_2":
-                    lane_group = 6
-                elif lane_id == "S2TL1_3":
-                    lane_group = 7
-                else:
-                    lane_group = -1
+                lane_group = -1
 
             if lane_group >= 1 and lane_group <= 7:
                 car_position = int(str(lane_group) + str(
@@ -306,7 +326,9 @@ class Simulation:
             if valid_car:
                 state[
                     car_position] = 1  # write the position of the car car_id in the state array in the form of "cell occupied"
-
+                if traci.vehicle.getSpeed(car_id) < 1:
+                    nr_stops += 1
+        self.nr_stops += nr_stops
         return state
 
     def _replay(self):
@@ -357,3 +379,5 @@ class Simulation:
     def avg_queue_length_store(self):
         return self._avg_queue_length_store
 
+    def get_nr_stops(self):
+        return self.nr_stops

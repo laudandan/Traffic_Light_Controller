@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import os
+import numpy as np
 
 class Visualization:
     def __init__(self, path, dpi):
@@ -7,20 +8,27 @@ class Visualization:
             self._dpi = dpi
 
 
-    def save_data_and_plot(self, data, filename, xlabel, ylabel):
+    def save_data_and_plot(self, data, filename, xlabel, ylabel, dumb):
         """
         Produce a plot of performance of the agent over the session and save the relative data to txt
         """
-        min_val = min(data)
-        max_val = max(data)
-
+        min_val = [0 for i in range(len(data))]
+        max_val = [0 for i in range(len(data))]
         plt.rcParams.update({'font.size': 24})  # set bigger font size
-
-        plt.plot(data)
+        for index, datas in enumerate(data):
+            min_val[index] = min(datas)
+            max_val[index] = max(datas)
+            if index==1 and dumb:
+                plt.plot(datas, label="Agent "+str(index + 1)+" dumb")
+            else:
+                plt.plot(datas, label="Agent " + str(index + 1))
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
+        plt.legend(loc="upper left")
         plt.margins(0)
-        plt.ylim(min_val - 0.05 * abs(min_val), max_val + 0.05 * abs(max_val))
+        minv = min(min_val)
+        maxv = max(max_val)
+        plt.ylim(minv - 0.05 * abs(minv), maxv + 0.05 * abs(maxv))
         # plt.ylim(min_val)
 
         fig = plt.gcf()
