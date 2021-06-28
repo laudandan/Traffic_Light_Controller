@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 06/02/21 18:27:05 by Eclipse SUMO netedit Version 1.8.0
+<!-- generated on 06/08/21 10:45:26 by Eclipse SUMO netedit Version 1.8.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="G:\Licenta\trybest1\Deep-QLearning-Agent-for-Traffic-Signal-Control\TLCS\intersection\environment1.net.xml"/>
+        <sumo-net-file value="G:\Licenta\compararemodele\implementaton_agents\TLCS\intersection\environment.net.xml"/>
     </input>
 
     <output>
-        <output-file value="G:\Licenta\trybest1\Deep-QLearning-Agent-for-Traffic-Signal-Control\TLCS\intersection\environment1.net.xml"/>
+        <output-file value="G:\Licenta\compararemodele\implementaton_agents\TLCS\intersection\environment.net.xml"/>
     </output>
 
     <processing>
@@ -235,14 +235,14 @@
         <phase duration="100" state="rrrrrrrrryrrrrrrrrry"/>
     </tlLogic>
     <tlLogic id="TL1" type="static" programID="0" offset="0">
-        <phase duration="100" state="GGGGrrrrrrGGGGrrrrrr"/>
-        <phase duration="100" state="yyyyrrrrrryyyyrrrrrr"/>
-        <phase duration="100" state="rrrrGrrrrrrrrrGrrrrr"/>
-        <phase duration="100" state="rrrryrrrrrrrrryrrrrr"/>
-        <phase duration="100" state="rrrrrGGGGrrrrrrGGGGr"/>
-        <phase duration="100" state="rrrrryyyyrrrrrryyyyr"/>
-        <phase duration="100" state="rrrrrrrrrGrrrrrrrrrG"/>
-        <phase duration="100" state="rrrrrrrrryrrrrrrrrry"/>
+        <phase duration="60" state="GGGGrrrrrrGGGGrrrrrr"/>
+        <phase duration="4"  state="yyyyrrrrrryyyyrrrrrr"/>
+        <phase duration="40" state="rrrrGrrrrrrrrrGrrrrr"/>
+        <phase duration="4"  state="rrrryrrrrrrrrryrrrrr"/>
+        <phase duration="60" state="rrrrrGGGGrrrrrrGGGGr"/>
+        <phase duration="4"  state="rrrrryyyyrrrrrryyyyr"/>
+        <phase duration="40" state="rrrrrrrrrGrrrrrrrrrG"/>
+        <phase duration="4"  state="rrrrrrrrryrrrrrrrrry"/>
     </tlLogic>
 
     <junction id="DE" type="dead_end" x="1500.00" y="0.00" incLanes="TL12E_0 TL12E_1 TL12E_2 TL12E_3" intLanes="" shape="1500.00,0.00 1500.00,-12.80 1500.00,0.00"/>
